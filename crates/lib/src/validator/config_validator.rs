@@ -71,7 +71,7 @@ impl ConfigValidator {
         Self::validate_fee_payer_policy(&config.validation.fee_payer_policy, &mut warnings);
         Self::warn_mutable_transfer_hook_payment_risk(&config.validation, &mut warnings);
         Self::check_price_model(config, &mut errors, &mut warnings);
-        Self::check_auth(config, &mut warnings);
+        Self::check_auth(config, &mut errors, &mut warnings);
         Self::check_caches(config, &mut errors, &mut warnings).await;
 
         if !skip_rpc_validation {
@@ -244,6 +244,86 @@ mod tests {
         assert_eq!(warnings.len(), 1);
         assert!(!warnings.iter().any(|w| w.contains("PermanentDelegate")));
         assert!(warnings.iter().any(|w| w.contains("No authentication configured")));
+    }
+
+    fn check_auth_with(auth: AuthConfig) -> (Vec<String>, Vec<String>) {
+        let config = Config {
+            validation: validation_config_with_auth(),
+            kora: KoraConfig { auth, ..KoraConfig::default() },
+            metrics: MetricsConfig::default(),
+        };
+        let (mut errors, mut warnings) = (Vec::new(), Vec::new());
+        ConfigValidator::check_auth(&config, &mut errors, &mut warnings);
+        (errors, warnings)
+    }
+
+    #[test]
+    #[serial]
+    fn test_app_check_counts_as_authentication() {
+        let (errors, warnings) = check_auth_with(AuthConfig {
+            app_check_project_number: Some("1234567890".to_string()),
+            ..AuthConfig::default()
+        });
+
+        assert!(errors.is_empty(), "got: {errors:?}");
+        assert!(!warnings.iter().any(|w| w.contains("No authentication configured")));
+    }
+
+    #[test]
+    #[serial]
+    fn test_app_check_project_id_is_rejected_as_project_number() {
+        let (errors, _) = check_auth_with(AuthConfig {
+            app_check_project_number: Some("my-firebase-project".to_string()),
+            ..AuthConfig::default()
+        });
+
+        assert!(errors.iter().any(|e| e.contains("numeric Firebase project number")));
+    }
+
+    #[test]
+    #[serial]
+    fn test_app_check_settings_without_project_number_are_an_error() {
+        for auth in [
+            AuthConfig {
+                app_check_app_ids: vec!["1:1234567890:ios:abc".to_string()],
+                ..AuthConfig::default()
+            },
+            AuthConfig {
+                app_check_jwks_url: Some("https://example.com/jwks".to_string()),
+                ..AuthConfig::default()
+            },
+            // An empty project number leaves the layer uninstalled, same as an absent one.
+            AuthConfig {
+                app_check_project_number: Some(String::new()),
+                app_check_app_ids: vec!["1:1234567890:ios:abc".to_string()],
+                ..AuthConfig::default()
+            },
+        ] {
+            let (errors, _) = check_auth_with(auth);
+            assert!(
+                errors.iter().any(|e| e.contains("App Check would not be enforced")),
+                "got: {errors:?}"
+            );
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn test_app_check_jwks_url_override() {
+        let with_jwks_url = |url: &str| AuthConfig {
+            app_check_project_number: Some("1234567890".to_string()),
+            app_check_jwks_url: Some(url.to_string()),
+            ..AuthConfig::default()
+        };
+
+        let (errors, warnings) = check_auth_with(with_jwks_url("http://127.0.0.1:8080/jwks"));
+        assert!(errors.is_empty(), "got: {errors:?}");
+        assert!(warnings.iter().any(|w| w.contains("app_check_jwks_url overrides")));
+
+        for invalid in ["not a url", "file:///etc/jwks.json"] {
+            let (errors, _) = check_auth_with(with_jwks_url(invalid));
+            assert!(errors.iter().any(|e| e.contains("must be an http(s) URL")), "got: {errors:?}");
+        }
     }
 
     fn validation_config_with_auth() -> ValidationConfig {

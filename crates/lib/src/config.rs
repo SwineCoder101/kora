@@ -857,6 +857,12 @@ pub struct AuthConfig {
     pub recaptcha_score_threshold: f64,
     pub max_timestamp_age: i64,
     pub protected_methods: Vec<String>,
+    /// Firebase project number whose App Check tokens are accepted. Setting it enables App Check.
+    pub app_check_project_number: Option<String>,
+    /// Firebase app IDs allowed to call this node. Empty accepts every app in the project.
+    pub app_check_app_ids: Vec<String>,
+    /// JWKS endpoint App Check tokens are verified against. Defaults to Firebase's.
+    pub app_check_jwks_url: Option<String>,
 }
 
 impl Default for AuthConfig {
@@ -868,6 +874,9 @@ impl Default for AuthConfig {
             recaptcha_score_threshold: DEFAULT_RECAPTCHA_SCORE_THRESHOLD,
             max_timestamp_age: DEFAULT_MAX_TIMESTAMP_AGE,
             protected_methods: DEFAULT_PROTECTED_METHODS.iter().map(|s| s.to_string()).collect(),
+            app_check_project_number: None,
+            app_check_app_ids: Vec::new(),
+            app_check_jwks_url: None,
         }
     }
 }
@@ -904,9 +913,17 @@ impl AuthConfig {
         Self::resolve_secret(Self::RECAPTCHA_SECRET_ENV, self.recaptcha_secret.as_deref())
     }
 
-    /// Whether API-key or HMAC auth is in effect after env-first resolution (what the server enforces).
+    /// The project number App Check is enforced for, or `None` when App Check is off.
+    pub(crate) fn resolved_app_check_project_number(&self) -> Option<String> {
+        Self::normalize_optional_secret(self.app_check_project_number.clone())
+    }
+
+    /// Whether API-key, HMAC or App Check auth is in effect after env-first resolution (what the
+    /// server enforces).
     pub(crate) fn has_resolved_auth(&self) -> bool {
-        self.resolved_api_keys().is_some() || self.resolved_hmac_secret().is_some()
+        self.resolved_api_keys().is_some()
+            || self.resolved_hmac_secret().is_some()
+            || self.resolved_app_check_project_number().is_some()
     }
 
     /// Auth fields where a non-empty environment variable overrides a *different* non-empty
@@ -1613,6 +1630,31 @@ allow_create = true
         let auth: AuthConfig = toml::from_str(toml_str).unwrap();
         assert_eq!(auth.api_keys, None);
         assert_eq!(auth.has_resolved_auth(), false);
+    }
+
+    #[test]
+    fn test_app_check_defaults_to_off() {
+        let auth: AuthConfig = toml::from_str("").unwrap();
+        assert_eq!(auth.resolved_app_check_project_number(), None);
+        assert!(auth.app_check_app_ids.is_empty());
+        assert_eq!(auth.app_check_jwks_url, None);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_app_check_project_number_enables_auth() {
+        let toml_str = r#"
+        app_check_project_number = "1234567890"
+        app_check_app_ids = ["1:1234567890:android:abc", "1:1234567890:ios:def"]
+        "#;
+        let auth: AuthConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(auth.resolved_app_check_project_number(), Some("1234567890".to_string()));
+        assert_eq!(auth.app_check_app_ids.len(), 2);
+        assert!(auth.has_resolved_auth());
+
+        let blank: AuthConfig = toml::from_str(r#"app_check_project_number = """#).unwrap();
+        assert_eq!(blank.resolved_app_check_project_number(), None);
+        assert!(!blank.has_resolved_auth());
     }
 
     #[test]

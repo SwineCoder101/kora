@@ -38,6 +38,10 @@ pub const TEST_API_KEY: &str = "test-api-key-123";
 /// Test HMAC secret for authentication tests
 pub const TEST_HMAC_SECRET: &str = "test-hmac-secret-456";
 
+/// Firebase project number and app ID the app-check fixture accepts
+pub const TEST_APP_CHECK_PROJECT_NUMBER: &str = "1234567890";
+pub const TEST_APP_CHECK_APP_ID: &str = "1:1234567890:android:0123456789abcdef";
+
 /// RPC URL environment variable
 pub const RPC_URL_ENV: &str = "RPC_URL";
 

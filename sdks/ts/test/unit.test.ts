@@ -632,6 +632,104 @@ describe('KoraClient Unit Tests', () => {
         });
     });
 
+    describe('App Check Authentication', () => {
+        it('should include x-firebase-appcheck header when getAppCheckToken callback is provided (sync)', async () => {
+            const appCheckClient = new KoraClient({
+                getAppCheckToken: () => 'test-app-check-token',
+                rpcUrl: mockRpcUrl,
+            });
+
+            mockSuccessfulResponse({ version: '1.0.0' });
+            await appCheckClient.getVersion();
+
+            expect(mockFetch).toHaveBeenCalledWith(mockRpcUrl, {
+                body: JSON.stringify({
+                    id: 1,
+                    jsonrpc: '2.0',
+                    method: 'getVersion',
+                    params: undefined,
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-firebase-appcheck': 'test-app-check-token',
+                },
+                method: 'POST',
+            });
+        });
+
+        it('should include x-firebase-appcheck header when getAppCheckToken callback returns Promise', async () => {
+            const appCheckClient = new KoraClient({
+                getAppCheckToken: () => Promise.resolve('async-app-check-token'),
+                rpcUrl: mockRpcUrl,
+            });
+
+            mockSuccessfulResponse({ version: '1.0.0' });
+            await appCheckClient.getVersion();
+
+            const callArgs = (mockFetch.mock.calls as Array<[string, { headers: Record<string, string> }]>)[0][1];
+            expect(callArgs.headers['x-firebase-appcheck']).toBe('async-app-check-token');
+        });
+
+        it('should NOT include x-firebase-appcheck header when getAppCheckToken is not provided', async () => {
+            mockSuccessfulResponse({ version: '1.0.0' });
+            await client.getVersion();
+
+            const callArgs = (mockFetch.mock.calls as Array<[string, { headers: Record<string, string> }]>)[0][1];
+            expect(callArgs.headers).not.toHaveProperty('x-firebase-appcheck');
+        });
+
+        it('should include x-firebase-appcheck along with other auth headers', async () => {
+            const combinedAuthClient = new KoraClient({
+                apiKey: 'test-api-key',
+                getAppCheckToken: () => 'test-app-check-token',
+                getRecaptchaToken: () => 'test-recaptcha-token',
+                rpcUrl: mockRpcUrl,
+            });
+
+            mockSuccessfulResponse({ version: '1.0.0' });
+            await combinedAuthClient.getVersion();
+
+            const callArgs = (mockFetch.mock.calls as Array<[string, { headers: Record<string, string> }]>)[0][1];
+            expect(callArgs.headers).toMatchObject({
+                'Content-Type': 'application/json',
+                'x-api-key': 'test-api-key',
+                'x-firebase-appcheck': 'test-app-check-token',
+                'x-recaptcha-token': 'test-recaptcha-token',
+            });
+        });
+
+        it('should call getAppCheckToken callback for each request', async () => {
+            let callCount = 0;
+            const appCheckClient = new KoraClient({
+                getAppCheckToken: () => `token-${++callCount}`,
+                rpcUrl: mockRpcUrl,
+            });
+
+            mockSuccessfulResponse({ version: '1.0.0' });
+            await appCheckClient.getVersion();
+
+            mockSuccessfulResponse({ blockhash: 'test-blockhash' });
+            await appCheckClient.getBlockhash();
+
+            expect(callCount).toBe(2);
+            const calls = mockFetch.mock.calls as Array<[string, { headers: Record<string, string> }]>;
+            expect(calls[0][1].headers['x-firebase-appcheck']).toBe('token-1');
+            expect(calls[1][1].headers['x-firebase-appcheck']).toBe('token-2');
+        });
+
+        it('should propagate errors when getAppCheckToken callback throws', async () => {
+            const appCheckClient = new KoraClient({
+                getAppCheckToken: () => {
+                    throw new Error('App Check is not initialized');
+                },
+                rpcUrl: mockRpcUrl,
+            });
+
+            await expect(appCheckClient.getVersion()).rejects.toThrow('App Check is not initialized');
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+    });
+
     describe('reCAPTCHA Authentication', () => {
         it('should include x-recaptcha-token header when getRecaptchaToken callback is provided (sync)', async () => {
             const recaptchaClient = new KoraClient({

@@ -485,6 +485,9 @@ impl AuthConfigBuilder {
                     .iter()
                     .map(|s| s.to_string())
                     .collect(),
+                app_check_project_number: None,
+                app_check_app_ids: Vec::new(),
+                app_check_jwks_url: None,
             },
         }
     }

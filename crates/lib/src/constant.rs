@@ -13,6 +13,7 @@ pub const X_RECAPTCHA_TOKEN: &str = "x-recaptcha-token";
 pub const X_API_KEY: &str = "x-api-key";
 pub const X_HMAC_SIGNATURE: &str = "x-hmac-signature";
 pub const X_TIMESTAMP: &str = "x-timestamp";
+pub const X_FIREBASE_APPCHECK: &str = "x-firebase-appcheck";
 pub const DEFAULT_MAX_TIMESTAMP_AGE: i64 = 300;
 pub const MIN_RECAPTCHA_SCORE: f64 = 0.0;
 pub const MAX_RECAPTCHA_SCORE: f64 = 1.0;
@@ -23,6 +24,14 @@ pub const DEFAULT_PROTECTED_METHODS: &[&str] =
 pub const JUPITER_API_URL: &str = "https://api.jup.ag";
 pub const RECAPTCHA_VERIFY_URL: &str = "https://www.google.com/recaptcha/api/siteverify";
 pub const RECAPTCHA_TIMEOUT_SECS: u64 = 5;
+pub const APP_CHECK_JWKS_URL: &str = "https://firebaseappcheck.googleapis.com/v1/jwks";
+pub const APP_CHECK_ISSUER_PREFIX: &str = "https://firebaseappcheck.googleapis.com/";
+pub const APP_CHECK_JWKS_TIMEOUT_SECS: u64 = 5;
+// Firebase asks verifiers to cache the key set for up to six hours.
+pub const APP_CHECK_JWKS_CACHE_TTL_SECS: u64 = 6 * 60 * 60;
+// Floor between JWKS fetches, so tokens carrying unknown key ids cannot turn Kora into a
+// request amplifier against the JWKS endpoint.
+pub const APP_CHECK_JWKS_MIN_REFRESH_INTERVAL_SECS: u64 = 60;
 
 pub const LIGHTHOUSE_PROGRAM_ID: Pubkey = pubkey!("L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95");
 
