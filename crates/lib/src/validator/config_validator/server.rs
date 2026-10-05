@@ -1,12 +1,13 @@
 use super::ConfigValidator;
 use crate::{
     config::{classify_cors_origins, Config, CorsOriginsClassification},
-    constant::{MAX_RECAPTCHA_SCORE, MIN_RECAPTCHA_SCORE},
+    constant::{APP_CHECK_JWKS_URL, MAX_RECAPTCHA_SCORE, MIN_RECAPTCHA_SCORE},
     plugin::TransactionPluginRunner,
     validator::cache_validator::CacheValidator,
 };
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
+use url::Url;
 
 const MIN_SIGN_TIMEOUT_SECONDS: u64 = 1;
 const HIGH_SIGN_MAX_RETRIES_WARNING_THRESHOLD: u32 = 10;
@@ -106,13 +107,18 @@ impl ConfigValidator {
         }
     }
 
-    pub(super) fn check_auth(config: &Config, warnings: &mut Vec<String>) {
+    pub(super) fn check_auth(
+        config: &Config,
+        errors: &mut Vec<String>,
+        warnings: &mut Vec<String>,
+    ) {
         let has_auth = config.kora.auth.has_resolved_auth();
         if !has_auth {
             warnings.push(
-                "⚠️  SECURITY: No authentication configured (neither api_keys nor hmac_secret). \
+                "⚠️  SECURITY: No authentication configured (no api_keys, hmac_secret or \
+                app_check_project_number). \
                 Authentication is strongly recommended for production deployments. \
-                Consider enabling api_keys or hmac_secret in [kora.auth]."
+                Consider enabling api_keys, hmac_secret or app_check_project_number in [kora.auth]."
                     .to_string(),
             );
         }
@@ -120,6 +126,45 @@ impl ConfigValidator {
         // The running server resolves auth env-first, so a stale KORA_* environment variable
         // silently overrides a rotated kora.toml secret and keeps the retired credential valid.
         warnings.extend(config.kora.auth.env_overridden_fields());
+
+        Self::check_app_check(config, errors, warnings);
+    }
+
+    fn check_app_check(config: &Config, errors: &mut Vec<String>, warnings: &mut Vec<String>) {
+        let auth = &config.kora.auth;
+
+        let Some(project_number) = auth.resolved_app_check_project_number() else {
+            // Without a project number the layer is not installed at all, so these settings
+            // would read as protection that is not there.
+            if !auth.app_check_app_ids.is_empty() || auth.app_check_jwks_url.is_some() {
+                errors.push(
+                    "app_check_app_ids / app_check_jwks_url are set but app_check_project_number \
+                    is not, so App Check would not be enforced. Set app_check_project_number in \
+                    [kora.auth] or remove the other App Check settings."
+                        .to_string(),
+                );
+            }
+            return;
+        };
+
+        if !project_number.bytes().all(|b| b.is_ascii_digit()) {
+            errors.push(
+                "app_check_project_number must be the numeric Firebase project number \
+                (Firebase console > Project settings > General), not the project ID."
+                    .to_string(),
+            );
+        }
+
+        if let Some(jwks_url) = &auth.app_check_jwks_url {
+            match Url::parse(jwks_url) {
+                Ok(url) if matches!(url.scheme(), "http" | "https") => warnings.push(format!(
+                    "⚠️  SECURITY: app_check_jwks_url overrides the Firebase App Check key set \
+                    ({APP_CHECK_JWKS_URL}). Whoever serves that URL can mint tokens this node \
+                    accepts. Only override it in tests."
+                )),
+                _ => errors.push("app_check_jwks_url must be an http(s) URL".to_string()),
+            }
+        }
     }
 
     pub(super) async fn check_caches(

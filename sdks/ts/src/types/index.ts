@@ -492,6 +492,8 @@ export interface RpcRequest<T> {
 export interface AuthenticationHeaders {
     /** API key for simple authentication */
     'x-api-key'?: string;
+    /** Firebase App Check token attesting the calling app */
+    'x-firebase-appcheck'?: string;
     /** HMAC SHA256 signature of timestamp + body */
     'x-hmac-signature'?: string;
     /** reCAPTCHA v3 token for bot protection */
@@ -506,6 +508,13 @@ export interface AuthenticationHeaders {
 export interface KoraClientOptions {
     /** Optional API key for authentication */
     apiKey?: string;
+    /**
+     * Optional callback to get a Firebase App Check token, for operators that require app attestation.
+     * Called for every request when provided; the App Check SDK caches the token and refreshes it.
+     * @example React Native: `async () => (await getToken(appCheck)).token`
+     * @example Testing: `() => 'test-token'`
+     */
+    getAppCheckToken?: () => Promise<string> | string;
     /**
      * Optional callback to get a reCAPTCHA v3 token for bot protection.
      * Called for every request when provided; server determines which methods require it.
@@ -535,6 +544,13 @@ export interface KoraPluginConfig {
     apiKey?: string;
     /** Kora RPC endpoint URL */
     endpoint: string;
+    /**
+     * Optional callback to get a Firebase App Check token, for operators that require app attestation.
+     * Called for every request when provided; the App Check SDK caches the token and refreshes it.
+     * @example React Native: `async () => (await getToken(appCheck)).token`
+     * @example Testing: `() => 'test-token'`
+     */
+    getAppCheckToken?: () => Promise<string> | string;
     /**
      * Optional callback to get a reCAPTCHA v3 token for bot protection.
      * Called for every request when provided; server determines which methods require it.
@@ -692,6 +708,7 @@ export interface KoraBundleConfig {
     readonly computeUnitPrice?: MicroLamports;
     readonly endpoint: string;
     readonly feeToken: Address;
+    readonly getAppCheckToken?: () => Promise<string> | string;
     readonly getRecaptchaToken?: () => Promise<string> | string;
     readonly hmacSecret?: string;
     readonly rpcUrl: string;

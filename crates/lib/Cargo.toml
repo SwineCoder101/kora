@@ -76,6 +76,7 @@ futures-util = { workspace = true }
 http = { workspace = true }
 config = { workspace = true }
 hmac = { workspace = true }
+jsonwebtoken = { workspace = true }
 sha2 = { workspace = true }
 prometheus = { workspace = true }
 regex = "1.11.1"
@@ -95,6 +96,7 @@ mockall = "0.15.0"
 tempfile = "3.27"
 tokio = { version = "1.50", features = ["macros", "rt-multi-thread"] }
 mockito = "1.7.2"
+jsonwebtoken = { workspace = true, features = ["use_pem"] }
 serial_test = "3.4.0"
 proptest = "1.11.0"
 

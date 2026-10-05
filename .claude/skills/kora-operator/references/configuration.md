@@ -47,15 +47,28 @@ protected_methods = [              # Methods requiring reCAPTCHA (default: signi
     "sign_bundle",
     "sign_and_send_bundle",
 ]
+app_check_project_number = "123456789012"   # Firebase project number; setting it enables App Check
+app_check_app_ids = [                       # Optional allow-list (default: any app in the project)
+    "1:123456789012:ios:abcdef0123456789",
+]
 ```
 
-All three methods optional. Can use simultaneously. `/liveness` always exempt.
+All four methods optional. Can use simultaneously, in which case a request has to satisfy every one that is configured. `/liveness` always exempt.
 
 **API Key**: Client sends `x-api-key` header.
 
 **HMAC**: Client sends `x-timestamp` + `x-hmac-signature` (SHA256 of `timestamp + body`).
 
 **reCAPTCHA v3**: Bot protection. Client sends `x-recaptcha-token` header. Server verifies score against threshold. Only checked on `protected_methods` (signing methods by default).
+
+**Firebase App Check**: Attestation for mobile apps, which cannot keep an API key or HMAC secret private — anything shipped in an app binary can be extracted. The app obtains a short-lived token from the App Check SDK (App Attest / DeviceCheck on iOS, Play Integrity on Android) and sends it in `x-firebase-appcheck`. Kora verifies the token's RS256 signature against Firebase's published keys (cached for 6 hours), plus its expiry, issuer and audience for `app_check_project_number`, and the app ID when `app_check_app_ids` is set. Applies to every method except `liveness`.
+
+- `app_check_project_number` is the numeric project number, not the project ID. `config validate` rejects a non-numeric value, and rejects `app_check_app_ids` set without it.
+- There is no secret to store: verification uses public keys, so nothing here has an env var.
+- If Firebase's key endpoint is unreachable and the cached keys have expired, requests are rejected rather than waved through.
+- A token proves the request came from a genuine build of the app. It does not identify the user and it is not bound to the request, so it can be replayed until it expires (1 hour by default, configurable in the Firebase console). Pair it with usage limits.
+- Because configured methods stack, a node with `api_keys` and App Check both set requires both headers. A backend service cannot mint App Check tokens, so serve backend callers from a separate node.
+- `app_check_jwks_url` overrides the key endpoint. It exists for tests; whoever serves that URL can mint tokens the node accepts.
 
 **Best practices**: 32+ char keys, regular rotation, HTTPS in production.
 

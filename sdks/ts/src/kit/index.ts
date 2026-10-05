@@ -52,6 +52,7 @@ export function kora(config: KoraBundleConfig) {
     return async <T extends ClientWithIdentity>(client: T) => {
         const koraClient = new KoraClient({
             apiKey: config.apiKey,
+            getAppCheckToken: config.getAppCheckToken,
             getRecaptchaToken: config.getRecaptchaToken,
             hmacSecret: config.hmacSecret,
             rpcUrl: config.endpoint,

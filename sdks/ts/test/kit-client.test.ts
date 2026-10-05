@@ -412,6 +412,27 @@ describe('createKitKoraClient', () => {
             const headers = mockFetch.mock.calls[0][1].headers;
             expect(headers['x-recaptcha-token']).toBe('test-recaptcha-token');
         });
+
+        it('should pass getAppCheckToken to underlying KoraClient', async () => {
+            const mockGetToken = jest.fn().mockResolvedValue('test-app-check-token');
+
+            mockRpcResponse({
+                signer_address: MOCK_PAYER_ADDRESS,
+                payment_address: MOCK_PAYMENT_ADDRESS,
+            });
+
+            await createKitKoraClient({
+                endpoint: MOCK_ENDPOINT,
+                rpcUrl: MOCK_RPC_URL,
+                feeToken: MOCK_FEE_TOKEN,
+                feePayerWallet: MOCK_WALLET,
+                getAppCheckToken: mockGetToken,
+            });
+
+            expect(mockGetToken).toHaveBeenCalledTimes(1);
+            const headers = mockFetch.mock.calls[0][1].headers;
+            expect(headers['x-firebase-appcheck']).toBe('test-app-check-token');
+        });
     });
 
     describe('Token-2022 support', () => {

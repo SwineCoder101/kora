@@ -1,3 +1,4 @@
+pub mod app_check_helpers;
 pub mod assertions;
 pub mod auth_helpers;
 pub mod client;
@@ -10,6 +11,8 @@ pub mod seed;
 pub mod setup;
 pub mod transaction;
 
+#[cfg(test)]
+pub use app_check_helpers::*;
 pub use assertions::*;
 #[cfg(test)]
 pub use auth_helpers::*;

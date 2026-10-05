@@ -22,6 +22,7 @@ use tokio::{
 };
 
 use crate::common::{
+    app_check_helpers::serve_app_check_jwks,
     client::TestContext,
     constants::{
         DISABLE_SBPF_V0_V1_V2_DEPLOYMENT_FEATURE, KORA_PRIVATE_KEY_ENV, LIGHTHOUSE_PROGRAM_ID,
@@ -136,7 +137,7 @@ fn workspace_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().expect("tests/ always has a parent")
 }
 
-fn workspace_path(relative: &str) -> PathBuf {
+pub(crate) fn workspace_path(relative: &str) -> PathBuf {
     workspace_root().join(relative)
 }
 
@@ -210,7 +211,8 @@ fn deploy_test_programs(surfnet: &Surfnet) -> Result<()> {
 }
 
 /// Kora's config loader does no environment interpolation, so the fixture is
-/// rewritten per run with the surfnet URL as the Jito endpoint.
+/// rewritten per run with the surfnet URL as the Jito endpoint and, for a
+/// fixture that enables App Check, a local stand-in for Firebase's JWKS endpoint.
 fn render_config(source: &Path, rpc_url: &str) -> Result<PathBuf> {
     let contents = fs::read_to_string(source)
         .with_context(|| format!("failed to read config {}", source.display()))?;
@@ -224,6 +226,15 @@ fn render_config(source: &Path, rpc_url: &str) -> Result<PathBuf> {
     {
         jito.insert("block_engine_url".to_string(), rpc_url.into());
         jito.insert("simulate_bundle_url".to_string(), rpc_url.into());
+    }
+
+    if let Some(auth) = doc
+        .get_mut("kora")
+        .and_then(|kora| kora.get_mut("auth"))
+        .and_then(toml::Value::as_table_mut)
+        .filter(|auth| auth.contains_key("app_check_project_number"))
+    {
+        auth.insert("app_check_jwks_url".to_string(), serve_app_check_jwks()?.into());
     }
 
     let file_stem = source.file_stem().and_then(|s| s.to_str()).unwrap_or("kora");

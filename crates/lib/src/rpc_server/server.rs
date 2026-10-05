@@ -1,8 +1,10 @@
 use crate::{
     config::{classify_cors_origins, CorsOriginsClassification},
-    constant::{X_API_KEY, X_HMAC_SIGNATURE, X_RECAPTCHA_TOKEN, X_TIMESTAMP},
+    constant::{X_API_KEY, X_FIREBASE_APPCHECK, X_HMAC_SIGNATURE, X_RECAPTCHA_TOKEN, X_TIMESTAMP},
     metrics::run_metrics_server_if_required,
     rpc_server::{
+        app_check::AppCheckLayer,
+        app_check_util::AppCheckVerifier,
         auth::{ApiKeyAuthLayer, HmacAuthLayer},
         middleware_utils::MethodValidationLayer,
         recaptcha::RecaptchaLayer,
@@ -150,6 +152,7 @@ pub async fn run_rpc_server(rpc: KoraRpc, port: u16) -> Result<ServerHandles, an
         .allow_headers([
             header::CONTENT_TYPE,
             header::HeaderName::from_static(X_API_KEY),
+            header::HeaderName::from_static(X_FIREBASE_APPCHECK),
             header::HeaderName::from_static(X_HMAC_SIGNATURE),
             header::HeaderName::from_static(X_RECAPTCHA_TOKEN),
             header::HeaderName::from_static(X_TIMESTAMP),
@@ -171,6 +174,15 @@ pub async fn run_rpc_server(rpc: KoraRpc, port: u16) -> Result<ServerHandles, an
         )
     });
 
+    let app_check_verifier =
+        config.kora.auth.resolved_app_check_project_number().map(|project_number| {
+            AppCheckVerifier::new(
+                &project_number,
+                config.kora.auth.app_check_app_ids.clone(),
+                config.kora.auth.app_check_jwks_url.clone(),
+            )
+        });
+
     let middleware = tower::ServiceBuilder::new()
         // Add metrics handler first (before other layers) so it can intercept /metrics
         .layer(ProxyGetRequestLayer::new("/liveness", "liveness")?)
@@ -189,6 +201,7 @@ pub async fn run_rpc_server(rpc: KoraRpc, port: u16) -> Result<ServerHandles, an
                 .resolved_hmac_secret()
                 .map(|secret| HmacAuthLayer::new(secret, config.kora.auth.max_timestamp_age)),
         )
+        .option_layer(app_check_verifier.map(AppCheckLayer::new))
         .option_layer(recaptcha_config.map(RecaptchaLayer::new));
 
     let server = ServerBuilder::default()
