@@ -36,6 +36,7 @@ jobs:
             tokens,
             adversarial,
             auth,
+            app_check,
             payment_address,
             multi_signer,
             fee_payer_policy,

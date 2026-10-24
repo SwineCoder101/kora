@@ -52,6 +52,7 @@ export class KoraClient {
     private rpcUrl: string;
     private apiKey?: string;
     private hmacSecret?: string;
+    private getAppCheckToken?: () => Promise<string> | string;
     private getRecaptchaToken?: () => Promise<string> | string;
 
     /**
@@ -60,12 +61,14 @@ export class KoraClient {
      * @param options.rpcUrl - The Kora RPC server URL
      * @param options.apiKey - Optional API key for authentication
      * @param options.hmacSecret - Optional HMAC secret for signature-based authentication
+     * @param options.getAppCheckToken - Optional callback to get a Firebase App Check token for app attestation
      * @param options.getRecaptchaToken - Optional callback to get reCAPTCHA token for bot protection
      */
-    constructor({ rpcUrl, apiKey, hmacSecret, getRecaptchaToken }: KoraClientOptions) {
+    constructor({ rpcUrl, apiKey, hmacSecret, getAppCheckToken, getRecaptchaToken }: KoraClientOptions) {
         this.rpcUrl = rpcUrl;
         this.apiKey = apiKey;
         this.hmacSecret = hmacSecret;
+        this.getAppCheckToken = getAppCheckToken;
         this.getRecaptchaToken = getRecaptchaToken;
     }
 
@@ -87,6 +90,10 @@ export class KoraClient {
             const signature = this.getHmacSignature({ body, timestamp });
             headers['x-timestamp'] = timestamp;
             headers['x-hmac-signature'] = signature;
+        }
+        if (this.getAppCheckToken) {
+            const token = await Promise.resolve(this.getAppCheckToken());
+            headers['x-firebase-appcheck'] = token;
         }
         if (this.getRecaptchaToken) {
             const token = await Promise.resolve(this.getRecaptchaToken());

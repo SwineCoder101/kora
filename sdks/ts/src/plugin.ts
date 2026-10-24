@@ -36,6 +36,7 @@ import type {
  * @param config.endpoint - Kora RPC endpoint URL
  * @param config.apiKey - Optional API key for authentication
  * @param config.hmacSecret - Optional HMAC secret for signature-based authentication
+ * @param config.getAppCheckToken - Optional callback to get a Firebase App Check token for app attestation
  * @returns A Kit plugin function that adds `.kora` to the client
  *
  * @example
@@ -59,6 +60,7 @@ export function koraPlugin(config: KoraPluginConfig) {
         config.koraClient ??
         new KoraClient({
             apiKey: config.apiKey,
+            getAppCheckToken: config.getAppCheckToken,
             getRecaptchaToken: config.getRecaptchaToken,
             hmacSecret: config.hmacSecret,
             rpcUrl: config.endpoint,

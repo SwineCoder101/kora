@@ -32,7 +32,7 @@ pub(crate) fn auth_rejection_response() -> Response<Body> {
     response
 }
 
-fn is_liveness_request(body_bytes: &[u8]) -> bool {
+pub(crate) fn is_liveness_request(body_bytes: &[u8]) -> bool {
     get_jsonrpc_method(body_bytes).as_deref() == Some("liveness")
 }
 

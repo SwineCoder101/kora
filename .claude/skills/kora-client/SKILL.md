@@ -75,8 +75,22 @@ itself, so there is no opportunity to re-sign and the assertion is skipped.
 |---|---|---|
 | API key | `x-api-key` | `apiKey` |
 | HMAC | `x-timestamp` + `x-hmac-signature` | `hmacSecret` |
+| Firebase App Check | `x-firebase-appcheck` | `getAppCheckToken` callback |
 | reCAPTCHA v3 | `x-recaptcha-token` | `getRecaptchaToken` callback |
 
-All three can be active together, and the SDK builds the HMAC (SHA256 of `timestamp + JSON body`)
+All four can be active together, and the SDK builds the HMAC (SHA256 of `timestamp + JSON body`)
 for you. reCAPTCHA is checked only on the methods the operator marked protected, and only after
-API key / HMAC pass. `/liveness` always bypasses auth.
+API key / HMAC / App Check pass. `/liveness` always bypasses auth.
+
+Mobile apps should use App Check rather than an API key or HMAC secret, since neither can be kept
+private inside an app binary. Hand the SDK a callback that returns the current token; the App
+Check SDK caches and refreshes it:
+
+```typescript
+import { getToken } from '@react-native-firebase/app-check';
+
+const client = new KoraClient({
+    rpcUrl,
+    getAppCheckToken: async () => (await getToken(appCheck)).token,
+});
+```

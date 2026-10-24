@@ -139,7 +139,8 @@ impl ConfigValidator {
                     warnings.push(
                         "⚠️  SECURITY: Fixed pricing with NO authentication enabled. \
                         Without authentication, anyone can spam transactions at your expense. \
-                        Consider enabling api_keys or hmac_secret in [kora.auth]."
+                        Consider enabling api_keys, hmac_secret or app_check_project_number \
+                        in [kora.auth]."
                             .to_string(),
                     );
                 }

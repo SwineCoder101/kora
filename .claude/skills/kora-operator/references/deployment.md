@@ -47,5 +47,5 @@ Full walkthrough: https://launch.solana.com/docs/kora/operators/deployment/railw
   it catches an unfunded fee payer and non-existent mints.
 - Run `rpc initialize-atas` if the node accepts token payments.
 - Point a health check at `/liveness`; it bypasses auth by design.
-- A public node with no `api_key` or `hmac_secret` set is an open paymaster. Rate limiting alone
-  does not stop a funded attacker draining the fee payer.
+- A public node with no `api_key`, `hmac_secret` or `app_check_project_number` set is an open
+  paymaster. Rate limiting alone does not stop a funded attacker draining the fee payer.

@@ -26,6 +26,14 @@ cors_allow_origins = ["*"]
 # Optional: RPC methods that require reCAPTCHA verification
 # protected_methods = ["signTransaction", "signAndSendTransaction", "signBundle", "signAndSendBundle"]
 
+# Optional: Firebase App Check attestation for mobile clients. Setting the project number
+# (numeric, from Firebase console > Project settings) requires a valid App Check token in the
+# x-firebase-appcheck header on every method except liveness.
+# app_check_project_number = "123456789012"
+
+# Optional: Restrict App Check to these Firebase app IDs (default: any app in the project)
+# app_check_app_ids = ["1:123456789012:ios:abcdef0123456789", "1:123456789012:android:abcdef0123456789"]
+
 # Lighthouse fee payer protection - adds balance assertions to prevent fee payer drainage
 # IMPORTANT: Only works with signTransaction/signBundle flows, NOT signAndSendTransaction/signAndSendBundle
 # When lighthouse modifies a transaction (adding assertion instruction), existing client signatures

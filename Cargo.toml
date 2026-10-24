@@ -94,6 +94,8 @@ redis = { version = "1.0.2", features = ["tokio-comp", "connection-manager"] }
 deadpool-redis = "0.23.0"
 utoipa = { version = "5.5.0", features = ["yaml", "chrono"] }
 hmac = "0.13.0"
+# Already in the lockfile through solana-keychain, which selects the rust_crypto backend.
+jsonwebtoken = { version = "10.4.0", default-features = false, features = ["rust_crypto"] }
 sha2 = "0.11.0"
 prometheus = "0.14.0"
 subtle = "2.6.1"

@@ -1,4 +1,5 @@
 pub mod account_mock;
+pub mod app_check_mock;
 pub mod cache_mock;
 pub mod common;
 pub mod config_mock;

@@ -1,3 +1,5 @@
+pub mod app_check;
+pub mod app_check_util;
 pub mod args;
 pub mod auth;
 pub mod method;
@@ -9,6 +11,8 @@ pub mod recaptcha_util;
 pub mod rpc;
 pub mod server;
 
+pub use app_check::AppCheckLayer;
+pub use app_check_util::AppCheckVerifier;
 pub use args::RpcArgs;
 pub use recaptcha::RecaptchaLayer;
 pub use recaptcha_util::RecaptchaConfig;

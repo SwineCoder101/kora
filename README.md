@@ -35,7 +35,7 @@
 - **Language**: Rust with TypeScript SDK
 - **Protocol**: JSON-RPC 2.0  
 - **Signers**: Solana Private Key, Turnkey, Privy, Openfort
-- **Authentication**: API Key, HMAC, or none
+- **Authentication**: API Key, HMAC, Firebase App Check, or none
 - **Deployment**: Flexible deployment options (Docker, Railway, etc.) 
 
 ### Features
@@ -45,7 +45,7 @@
 - Redis caching for improved performance
 - Rate limiting and spend protection
 - Secure key management (Turnkey, Privy, Vault, Openfort)
-- HMAC and API key authentication
+- HMAC and API key authentication, Firebase App Check attestation for mobile apps
 - Prometheus metrics and monitoring
 - Enhanced fee payer protection policies
 

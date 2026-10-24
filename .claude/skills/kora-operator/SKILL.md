@@ -78,10 +78,16 @@ client must re-sign. Add `L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95` to `allow
 
 ### Authentication
 
-API key (`x-api-key`), HMAC (`x-timestamp` + `x-hmac-signature`), and reCAPTCHA v3 can all be
-active at once. Each reads from `[kora.auth]` or an env var (`KORA_API_KEY`, `KORA_HMAC_SECRET`,
-`KORA_RECAPTCHA_SECRET`). reCAPTCHA runs only after API key and HMAC have passed, and only on
-`protected_methods`. `/liveness` bypasses all of it.
+API key (`x-api-key`), HMAC (`x-timestamp` + `x-hmac-signature`), Firebase App Check
+(`x-firebase-appcheck`), and reCAPTCHA v3 can all be active at once. The first, second and fourth
+read from `[kora.auth]` or an env var (`KORA_API_KEY`, `KORA_HMAC_SECRET`,
+`KORA_RECAPTCHA_SECRET`); App Check holds no secret and is switched on by
+`app_check_project_number`. reCAPTCHA runs only after API key, HMAC and App Check have passed, and
+only on `protected_methods`. `/liveness` bypasses all of it.
+
+For a mobile app calling Kora directly, use App Check: an API key or HMAC secret shipped in an app
+binary can be extracted, whereas an App Check token is minted per device by the platform's
+attestation service.
 
 ### Jito bundles
 

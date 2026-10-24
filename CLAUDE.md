@@ -70,8 +70,8 @@ fallback. A key string that happens to match an existing path is read as a file.
 ### Middleware order is load-bearing
 
 In `rpc_server/server.rs` the reCAPTCHA layer is added last, making it innermost, so it runs only
-after API key and HMAC auth have passed. Moving it earlier means unauthenticated traffic burns
-reCAPTCHA quota. `/liveness` is proxied ahead of the auth layers and bypasses them.
+after API key, HMAC and App Check auth have passed. Moving it earlier means unauthenticated traffic
+burns reCAPTCHA quota. `/liveness` is proxied ahead of the auth layers and bypasses them.
 
 ### Each integration test binary owns one node
 
